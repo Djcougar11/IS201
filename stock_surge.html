@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stock Surge</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f5f0;
+      color: #1a1a1a;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 2rem 1rem;
+    }
+    .wrap { width: 100%; max-width: 700px; }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    .title { font-size: 26px; font-weight: 600; color: #1a1a1a; letter-spacing: -0.5px; }
+    .title span { color: #378ADD; }
+    .timer-box {
+      background: #fff;
+      border: 1px solid #e0e0d8;
+      border-radius: 8px;
+      padding: 6px 16px;
+      font-size: 14px;
+      color: #666;
+    }
+    .timer-box span { font-weight: 600; color: #1a1a1a; }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 1rem;
+    }
+    .stat {
+      background: #fff;
+      border: 1px solid #e0e0d8;
+      border-radius: 10px;
+      padding: 14px;
+    }
+    .stat-label { font-size: 12px; color: #888; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.4px; }
+    .stat-val { font-size: 20px; font-weight: 600; color: #1a1a1a; }
+    .stat-val.up { color: #1D9E75; }
+    .stat-val.dn { color: #D85A30; }
+    .news-feed {
+      background: #fff;
+      border: 1px solid #e0e0d8;
+      border-left: 4px solid #378ADD;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #555;
+      margin-bottom: 1rem;
+      min-height: 40px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .news-label { font-weight: 700; color: #D85A30; white-space: nowrap; }
+    .stocks-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 1rem;
+    }
+    .stock-card {
+      background: #fff;
+      border: 1px solid #e0e0d8;
+      border-radius: 12px;
+      padding: 14px;
+      cursor: pointer;
+      transition: border-color .15s, box-shadow .15s;
+      user-select: none;
+    }
+    .stock-card:hover { border-color: #aaa; box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
+    .stock-card.selected { border: 2px solid #378ADD; box-shadow: 0 2px 12px rgba(55,138,221,0.15); }
+    .sc-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+    .sc-name { font-size: 14px; font-weight: 600; color: #1a1a1a; }
+    .sc-ticker {
+      font-size: 11px;
+      color: #fff;
+      background: #888;
+      border-radius: 4px;
+      padding: 1px 6px;
+      display: inline-block;
+      margin-top: 3px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+    .sc-price { font-size: 20px; font-weight: 600; color: #1a1a1a; text-align: right; }
+    .sc-change { font-size: 12px; font-weight: 600; margin-top: 2px; text-align: right; }
+    .sc-change.up { color: #1D9E75; }
+    .sc-change.dn { color: #D85A30; }
+    .sc-owned { font-size: 11px; color: #999; margin-top: 6px; }
+    .sparkline { width: 100%; height: 40px; display: block; margin-top: 6px; }
+    .trade-panel {
+      background: #fff;
+      border: 1px solid #e0e0d8;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 1rem;
+    }
+    .tp-title { font-size: 14px; font-weight: 600; color: #555; margin-bottom: 12px; }
+    .tp-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .tp-row label { font-size: 13px; color: #666; white-space: nowrap; }
+    .tp-row input {
+      width: 80px;
+      padding: 7px 10px;
+      font-size: 13px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: #f9f9f6;
+      color: #1a1a1a;
+      outline: none;
+    }
+    .tp-row input:focus { border-color: #378ADD; box-shadow: 0 0 0 3px rgba(55,138,221,0.1); }
+    .btn {
+      padding: 8px 18px;
+      font-size: 13px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      border: 1px solid transparent;
+      transition: background .12s, transform .08s;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-buy { background: #E1F5EE; color: #0F6E56; border-color: #5DCAA5; }
+    .btn-buy:hover { background: #9FE1CB; }
+    .btn-sell { background: #FAECE7; color: #993C1D; border-color: #F0997B; }
+    .btn-sell:hover { background: #F5C4B3; }
+    .msg { font-size: 12px; color: #888; margin-top: 10px; min-height: 16px; }
+    .over-screen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+      text-align: center;
+      gap: 12px;
+      background: #fff;
+      border: 1px solid #e0e0d8;
+      border-radius: 16px;
+    }
+    .over-title { font-size: 26px; font-weight: 700; color: #1a1a1a; }
+    .over-result { font-size: 48px; font-weight: 700; margin: 8px 0; }
+    .over-sub { font-size: 15px; color: #666; max-width: 400px; line-height: 1.6; }
+    .over-grade { font-size: 40px; margin: 4px 0; }
+    .btn-restart {
+      margin-top: 12px;
+      padding: 12px 32px;
+      font-size: 15px;
+      font-weight: 600;
+      background: #378ADD;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background .12s;
+    }
+    .btn-restart:hover { background: #185FA5; }
+    .instructions {
+      background: #fff;
+      border: 1px solid #e0e0d8;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 1rem;
+      line-height: 1.8;
+    }
+    .instructions strong { color: #555; }
+    @media (max-width: 480px) {
+      .stocks-grid { grid-template-columns: 1fr; }
+      .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .stat-val { font-size: 16px; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap" id="gameWrap">
+  <div class="header">
+    <div class="title">Stock <span>Surge</span></div>
+    <div class="timer-box">Time: <span id="timerEl">90s</span></div>
+  </div>
+
+  <div class="instructions">
+    <strong>How to play:</strong> Click a stock to select it, enter shares, then Buy or Sell. Watch for breaking news — it moves prices!
+    You have <strong>90 seconds</strong> to grow your $10,000. Sell everything before time runs out!
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-label">Cash</div><div class="stat-val" id="cashEl">$10,000</div></div>
+    <div class="stat"><div class="stat-label">Portfolio</div><div class="stat-val" id="portEl">$0</div></div>
+    <div class="stat"><div class="stat-label">Net Worth</div><div class="stat-val" id="netEl">$10,000</div></div>
+  </div>
+
+  <div class="news-feed"><span class="news-label">BREAKING:</span><span id="newsEl">Markets open — trade wisely!</span></div>
+
+  <div class="stocks-grid" id="stocksGrid"></div>
+
+  <div class="trade-panel" id="tradePanel">
+    <div class="tp-title" id="tpTitle">&#8592; Select a stock to trade</div>
+    <div class="tp-row">
+      <label>Shares:</label>
+      <input type="number" id="sharesInput" value="1" min="1" max="9999" step="1">
+      <button class="btn btn-buy" onclick="trade('buy')">Buy</button>
+      <button class="btn btn-sell" onclick="trade('sell')">Sell</button>
+    </div>
+    <div class="msg" id="tradeMsg"></div>
+  </div>
+
+  <div class="over-screen" id="overScreen">
+    <div class="over-title">&#x1F514; Market Closed!</div>
+    <div class="over-grade" id="overGrade"></div>
+    <div class="over-result" id="overResult"></div>
+    <div class="over-sub" id="overSub"></div>
+    <button class="btn-restart" onclick="initGame()">Trade Again</button>
+  </div>
+</div>
+
+<script>
+  const STOCKS = [
+    { name: "TechNova",   ticker: "TNV", base: 150, vol: 0.025, color: "#378ADD", badgeColor: "#185FA5", owned: 0, hist: [], price: 150 },
+    { name: "GreenLeaf",  ticker: "GRN", base: 80,  vol: 0.03,  color: "#639922", badgeColor: "#3B6D11", owned: 0, hist: [], price: 80  },
+    { name: "SolarX",     ticker: "SLX", base: 220, vol: 0.02,  color: "#BA7517", badgeColor: "#854F0B", owned: 0, hist: [], price: 220 },
+    { name: "CryptoBank", ticker: "CBK", base: 45,  vol: 0.055, color: "#7F77DD", badgeColor: "#534AB7", owned: 0, hist: [], price: 45  },
+  ];
+
+  const NEWS = [
+    ["TNV", "TechNova lands massive AI government contract!", 1.09],
+    ["GRN", "GreenLeaf misses quarterly earnings estimates.", 0.92],
+    ["SLX", "SolarX announces record-breaking installations.", 1.08],
+    ["CBK", "CryptoBank faces new regulatory scrutiny.", 0.87],
+    ["TNV", "TechNova hit by supply chain disruptions.", 0.91],
+    ["GRN", "GreenLeaf expands aggressively into Asia.", 1.10],
+    ["SLX", "SolarX CEO resigns unexpectedly.", 0.90],
+    ["CBK", "CryptoBank partners with global payment giant.", 1.13],
+    ["TNV", "TechNova stock upgraded by top analyst.", 1.06],
+    ["GRN", "GreenLeaf recalls products over safety concern.", 0.88],
+    [null,  "Fed holds interest rates steady — markets breathe.", 1.0],
+    [null,  "Global volatility spike rattles all sectors.", 1.0],
+    [null,  "Strong jobs report boosts investor confidence.", 1.02],
+    [null,  "Inflation data disappoints — markets dip.", 0.98],
+  ];
+
+  let cash, timer, selectedIdx, interval, newsTimeout, gameActive;
+
+  function initGame() {
+    cash = 10000;
+    timer = 90;
+    selectedIdx = null;
+    gameActive = true;
+
+    STOCKS.forEach(s => {
+      s.owned = 0;
+      s.price = s.base;
+      s.hist = [s.base];
+    });
+
+    document.getElementById('overScreen').style.display = 'none';
+    document.getElementById('tradePanel').style.display = '';
+    document.getElementById('stocksGrid').style.display = '';
+    document.getElementById('newsEl').textContent = 'Markets open — trade wisely!';
+    document.getElementById('tradeMsg').textContent = '';
+    document.getElementById('tpTitle').textContent = '← Select a stock to trade';
+
+    if (interval) clearInterval(interval);
+    if (newsTimeout) clearTimeout(newsTimeout);
+
+    interval = setInterval(tick, 1000);
+    scheduleNews();
+    renderStocks();
+    updateStats();
+  }
+
+  function scheduleNews() {
+    const delay = 7000 + Math.random() * 10000;
+    newsTimeout = setTimeout(() => {
+      if (!gameActive) return;
+      const n = NEWS[Math.floor(Math.random() * NEWS.length)];
+      document.getElementById('newsEl').textContent = n[1];
+      if (n[0]) {
+        const idx = STOCKS.findIndex(s => s.ticker === n[0]);
+        if (idx >= 0) STOCKS[idx].price = Math.max(1, STOCKS[idx].price * n[2]);
+      }
+      scheduleNews();
+    }, delay);
+  }
+
+  function tick() {
+    timer--;
+    document.getElementById('timerEl').textContent = timer + 's';
+    document.getElementById('timerEl').style.color = timer <= 15 ? '#D85A30' : '#1a1a1a';
+
+    STOCKS.forEach(s => {
+      const chg = 1 + (Math.random() - 0.5) * 2 * s.vol;
+      s.price = Math.max(0.5, s.price * chg);
+      s.hist.push(s.price);
+      if (s.hist.length > 40) s.hist.shift();
+    });
+
+    renderStocks();
+    updateStats();
+    if (timer <= 0) endGame();
+  }
+
+  function renderStocks() {
+    const grid = document.getElementById('stocksGrid');
+    grid.innerHTML = '';
+    STOCKS.forEach((s, i) => {
+      const prev = s.hist.length > 1 ? s.hist[s.hist.length - 2] : s.price;
+      const chgPct = ((s.price - prev) / prev * 100);
+      const allTimeChg = ((s.price - s.base) / s.base * 100);
+
+      const card = document.createElement('div');
+      card.className = 'stock-card' + (selectedIdx === i ? ' selected' : '');
+      card.onclick = () => { selectedIdx = i; renderStocks(); updateTradePanel(); };
+
+      card.innerHTML = `
+        <div class="sc-top">
+          <div>
+            <div class="sc-name">${s.name}</div>
+            <div class="sc-ticker" style="background:${s.badgeColor}">${s.ticker}</div>
+          </div>
+          <div>
+            <div class="sc-price">$${s.price.toFixed(2)}</div>
+            <div class="sc-change ${chgPct >= 0 ? 'up' : 'dn'}">${chgPct >= 0 ? '▲' : '▼'} ${Math.abs(chgPct).toFixed(2)}%</div>
+          </div>
+        </div>
+        <div class="sc-owned">Owned: ${s.owned} share${s.owned !== 1 ? 's' : ''} &nbsp;|&nbsp; Session: <span style="color:${allTimeChg>=0?'#1D9E75':'#D85A30'};font-weight:600">${allTimeChg >= 0 ? '+' : ''}${allTimeChg.toFixed(1)}%</span></div>
+      `;
+      card.appendChild(makeSpark(s.hist, s.color));
+      grid.appendChild(card);
+    });
+  }
+
+  function makeSpark(hist, color) {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'sparkline');
+    svg.setAttribute('viewBox', '0 0 100 40');
+    svg.setAttribute('preserveAspectRatio', 'none');
+    if (hist.length < 2) return svg;
+    const mn = Math.min(...hist), mx = Math.max(...hist), rng = mx - mn || 1;
+    const pts = hist.map((v, i) =>
+      `${(i / (hist.length - 1) * 100).toFixed(1)},${(40 - (v - mn) / rng * 36).toFixed(1)}`
+    ).join(' ');
+    const pl = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+    pl.setAttribute('points', pts);
+    pl.setAttribute('fill', 'none');
+    pl.setAttribute('stroke', color);
+    pl.setAttribute('stroke-width', '2');
+    pl.setAttribute('stroke-linejoin', 'round');
+    pl.setAttribute('stroke-linecap', 'round');
+    svg.appendChild(pl);
+    return svg;
+  }
+
+  function updateTradePanel() {
+    if (selectedIdx === null) return;
+    const s = STOCKS[selectedIdx];
+    document.getElementById('tpTitle').textContent =
+      `Trading: ${s.name} (${s.ticker})  ·  Current price: $${s.price.toFixed(2)}  ·  You own: ${s.owned}`;
+  }
+
+  function trade(type) {
+    if (selectedIdx === null) { showMsg('Select a stock card first.'); return; }
+    const s = STOCKS[selectedIdx];
+    const n = parseInt(document.getElementById('sharesInput').value) || 0;
+    if (n <= 0) { showMsg('Enter a valid number of shares.'); return; }
+
+    if (type === 'buy') {
+      const cost = s.price * n;
+      if (cost > cash) { showMsg(`Not enough cash! Need $${cost.toFixed(2)}, have $${cash.toFixed(2)}.`); return; }
+      cash -= cost;
+      s.owned += n;
+      showMsg(`✓ Bought ${n} share${n !== 1 ? 's' : ''} of ${s.ticker} for $${cost.toFixed(2)}.`);
+    } else {
+      if (n > s.owned) { showMsg(`You only own ${s.owned} share${s.owned !== 1 ? 's' : ''} of ${s.ticker}.`); return; }
+      const earn = s.price * n;
+      cash += earn;
+      s.owned -= n;
+      showMsg(`✓ Sold ${n} share${n !== 1 ? 's' : ''} of ${s.ticker} for $${earn.toFixed(2)}.`);
+    }
+    updateStats();
+    renderStocks();
+    updateTradePanel();
+  }
+
+  function showMsg(text) {
+    document.getElementById('tradeMsg').textContent = text;
+  }
+
+  function portValue() {
+    return STOCKS.reduce((a, s) => a + s.owned * s.price, 0);
+  }
+
+  function updateStats() {
+    const pv = portValue();
+    const net = cash + pv;
+    document.getElementById('cashEl').textContent = '$' + cash.toFixed(2);
+    document.getElementById('portEl').textContent = '$' + pv.toFixed(2);
+    const netEl = document.getElementById('netEl');
+    netEl.textContent = '$' + net.toFixed(2);
+    netEl.className = 'stat-val' + (net > 10000 ? ' up' : net < 10000 ? ' dn' : '');
+  }
+
+  function endGame() {
+    gameActive = false;
+    clearInterval(interval);
+    clearTimeout(newsTimeout);
+
+    const pv = portValue();
+    const net = cash + pv;
+    const diff = net - 10000;
+    const pct = (diff / 10000 * 100);
+
+    document.getElementById('tradePanel').style.display = 'none';
+    document.getElementById('stocksGrid').style.display = 'none';
+
+    const os = document.getElementById('overScreen');
+    os.style.display = 'flex';
+
+    const res = document.getElementById('overResult');
+    res.textContent = '$' + net.toFixed(2);
+    res.style.color = diff >= 0 ? '#1D9E75' : '#D85A30';
+
+    let grade, msg;
+    if (diff >= 3000)      { grade = '🏆'; msg = 'Legendary trader. You crushed the market!'; }
+    else if (diff >= 1500) { grade = '🥇'; msg = 'Outstanding gains — Wall Street would be jealous.'; }
+    else if (diff >= 500)  { grade = '📈'; msg = 'Solid performance. Nice trading instincts!'; }
+    else if (diff >= 0)    { grade = '👍'; msg = 'You stayed in the green. Not bad at all!'; }
+    else if (diff >= -500) { grade = '😬'; msg = 'Small loss. The market is unforgiving sometimes.'; }
+    else                   { grade = '📉'; msg = 'Rough session. Shake it off and try again!'; }
+
+    document.getElementById('overGrade').textContent = grade;
+    document.getElementById('overSub').innerHTML =
+      `<strong>${diff >= 0 ? '+' : ''}$${diff.toFixed(2)}</strong> (${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%) from your starting $10,000<br><br>${msg}`;
+  }
+
+  initGame();
+</script>
+</body>
+</html>
